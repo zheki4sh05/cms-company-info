@@ -1,0 +1,32 @@
+{
+  "name": "cms-company-info",
+  "version": "1.0.0",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "db:init": "node scripts/init-db.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zheki4sh05/cms-company-info.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/zheki4sh05/cms-company-info/issues"
+  },
+  "homepage": "https://github.com/zheki4sh05/cms-company-info#readme",
+  "description": "",
+  "dependencies": {
+    "dotenv": "^17.4.1",
+    "express": "^5.2.1",
+    "pg": "^8.20.0",
+    "swagger-ui-express": "^5.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
