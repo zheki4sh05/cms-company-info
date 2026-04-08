@@ -16,6 +16,25 @@ async function findFirst() {
   return rows[0] ?? null;
 }
 
+async function findByEmployeeAndUser(employeeId, userId) {
+  const { rows } = await pool.query(
+    `SELECT c.id,
+            c.name,
+            COALESCE(ec.cnt, 0)::int AS employee_count
+     FROM employee e
+     JOIN company c ON c.id = e.company_id
+     LEFT JOIN (
+       SELECT company_id, COUNT(*)::int AS cnt
+       FROM employee
+       GROUP BY company_id
+     ) ec ON ec.company_id = c.id
+     WHERE e.employee_id = $1 AND e.user_id = $2
+     LIMIT 1`,
+    [employeeId, userId]
+  );
+  return rows[0] ?? null;
+}
+
 async function updateNameById(companyId, name) {
   const { rows } = await pool.query(
     `UPDATE company SET name = $2 WHERE id = $1 RETURNING id, name`,
@@ -41,6 +60,7 @@ async function employeeCountByCompanyId(companyId) {
 
 module.exports = {
   findFirst,
+  findByEmployeeAndUser,
   updateNameById,
   deleteById,
   employeeCountByCompanyId,

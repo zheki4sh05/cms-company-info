@@ -23,6 +23,22 @@
         "tags": ["Company"],
         "summary": "Get company",
         "operationId": "getCompany",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Bearer <jwt>, payload must contain userId (or sub)."
+          },
+          {
+            "name": "EmployeeId",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Employee identifier from employee table."
+          }
+        ],
         "responses": {
           "200": {
             "description": "Company with employee count",
@@ -37,8 +53,24 @@
               }
             }
           },
+          "400": {
+            "description": "Missing EmployeeId header",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing/invalid bearer token user id",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
           "404": {
-            "description": "No company row in database",
+            "description": "No company linked to current employee/user",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Error" }

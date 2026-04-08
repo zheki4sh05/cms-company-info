@@ -1,5 +1,9 @@
 const companyRepository = require("../repositories/company.repository");
-const { NotFoundError, BadRequestError } = require("../errors/AppError");
+const {
+  NotFoundError,
+  BadRequestError,
+  UnauthorizedError,
+} = require("../errors/AppError");
 
 function toResponse(row, employeeCount) {
   return {
@@ -9,10 +13,23 @@ function toResponse(row, employeeCount) {
   };
 }
 
-async function getCompany() {
-  const row = await companyRepository.findFirst();
+function requireAuthContext(authContext) {
+  const userId = authContext?.userId;
+  const employeeId = authContext?.employeeId;
+  if (!userId) {
+    throw new UnauthorizedError("Bearer token with userId is required");
+  }
+  if (!employeeId) {
+    throw new BadRequestError("EmployeeId header is required");
+  }
+  return { userId, employeeId };
+}
+
+async function getCompany(authContext) {
+  const { userId, employeeId } = requireAuthContext(authContext);
+  const row = await companyRepository.findByEmployeeAndUser(employeeId, userId);
   if (!row) {
-    throw new NotFoundError("Company not found");
+    throw new NotFoundError("Company not found for current employee/user");
   }
   const count =
     row.employee_count != null

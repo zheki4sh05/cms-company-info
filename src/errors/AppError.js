@@ -17,4 +17,15 @@ class BadRequestError extends AppError {
   }
 }
 
-module.exports = { AppError, NotFoundError, BadRequestError };
+class UnauthorizedError extends AppError {
+  constructor(message = "Unauthorized") {
+    super(401, message);
+  }
+}
+
+module.exports = {
+  AppError,
+  NotFoundError,
+  BadRequestError,
+  UnauthorizedError,
+};

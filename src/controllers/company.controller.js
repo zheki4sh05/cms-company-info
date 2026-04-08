@@ -3,7 +3,7 @@ const { AppError } = require("../errors/AppError");
 
 async function getCompany(req, res, next) {
   try {
-    const data = await companyService.getCompany();
+    const data = await companyService.getCompany(req.authContext);
     res.json(data);
   } catch (err) {
     next(err);
