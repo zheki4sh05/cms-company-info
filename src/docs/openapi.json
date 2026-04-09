@@ -15,22 +15,55 @@
     {
       "name": "Company",
       "description": "Singleton company record (first row in DB)"
+    },
+    {
+      "name": "Employee",
+      "description": "Employee utilities based on authenticated user"
     }
   ],
   "paths": {
+    "/employee/id": {
+      "get": {
+        "tags": ["Employee"],
+        "summary": "Get employeeId by bearer token",
+        "operationId": "getEmployeeIdByToken",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Employee id for current user",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/EmployeeIdResponse" },
+                "example": { "employeeId": "8a6f24ad-1f07-48d8-b4d4-24aa6da67ef8" }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing/invalid bearer token user id",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "404": {
+            "description": "Employee not found for current user",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/company": {
       "get": {
         "tags": ["Company"],
         "summary": "Get company",
         "operationId": "getCompany",
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
-          {
-            "name": "Authorization",
-            "in": "header",
-            "required": true,
-            "schema": { "type": "string" },
-            "description": "Bearer <jwt>, payload must contain userId (or sub)."
-          },
           {
             "name": "EmployeeId",
             "in": "header",
@@ -141,6 +174,13 @@
     }
   },
   "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
     "schemas": {
       "Company": {
         "type": "object",
@@ -162,6 +202,13 @@
         "type": "object",
         "properties": {
           "error": { "type": "string" }
+        }
+      },
+      "EmployeeIdResponse": {
+        "type": "object",
+        "required": ["employeeId"],
+        "properties": {
+          "employeeId": { "type": "string" }
         }
       }
     }
