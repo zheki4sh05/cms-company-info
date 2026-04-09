@@ -58,10 +58,62 @@ async function employeeCountByCompanyId(companyId) {
   return rows[0]?.cnt ?? 0;
 }
 
+async function createCompanyWithEmployee({
+  companyId,
+  companyName,
+  employeeId,
+  userId,
+  role,
+}) {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    await client.query(
+      `INSERT INTO company (id, name)
+       VALUES ($1, $2)`,
+      [companyId, companyName]
+    );
+
+    await client.query(
+      `INSERT INTO employee (employee_id, user_id, company_id, role)
+       VALUES ($1, $2, $3, $4)`,
+      [employeeId, userId, companyId, role]
+    );
+
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+async function findEmployeeInCompanyByNameAndUserAndRole({
+  companyName,
+  userId,
+  role,
+}) {
+  const { rows } = await pool.query(
+    `SELECT c.id AS company_id, e.employee_id
+     FROM company c
+     JOIN employee e ON e.company_id = c.id
+     WHERE c.name = $1
+       AND e.user_id = $2
+       AND e.role = $3
+     LIMIT 1`,
+    [companyName, userId, role]
+  );
+  return rows[0] ?? null;
+}
+
 module.exports = {
   findFirst,
   findByEmployeeAndUser,
   updateNameById,
   deleteById,
   employeeCountByCompanyId,
+  createCompanyWithEmployee,
+  findEmployeeInCompanyByNameAndUserAndRole,
 };
