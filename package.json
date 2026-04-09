@@ -6,6 +6,7 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "db:init": "node scripts/init-db.js",
+    "db:migrate-uuid": "node scripts/apply-migration.js db/migrate_legacy_text_to_uuid.sql",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
