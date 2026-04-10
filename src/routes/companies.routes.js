@@ -1,5 +1,6 @@
 const { Router } = require("express");
 const departmentController = require("../controllers/department.controller");
+const employeeController = require("../controllers/employee.controller");
 const {
   requireUser,
   requireCompanyMember,
@@ -13,6 +14,13 @@ router.get(
   requireUser,
   requireCompanyMember,
   departmentController.list
+);
+
+router.get(
+  "/:companyId/employees",
+  requireUser,
+  requireCompanyMember,
+  employeeController.listCompanyEmployees
 );
 
 router.post(

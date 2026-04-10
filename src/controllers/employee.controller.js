@@ -9,4 +9,17 @@ async function getEmployeeIdByToken(req, res, next) {
   }
 }
 
-module.exports = { getEmployeeIdByToken };
+async function listCompanyEmployees(req, res, next) {
+  try {
+    const data = await employeeService.listCompanyEmployees(
+      req.authContext,
+      req.headers.authorization,
+      req.params.companyId
+    );
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { getEmployeeIdByToken, listCompanyEmployees };

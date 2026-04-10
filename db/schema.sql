@@ -41,3 +41,20 @@ CREATE TABLE IF NOT EXISTS department_employee (
 
 CREATE INDEX IF NOT EXISTS idx_department_employee_employee ON department_employee (employee_id);
 
+-- Invitations for adding employees into company/department
+CREATE TABLE IF NOT EXISTS invitation (
+  id UUID PRIMARY KEY,
+  email TEXT NOT NULL,
+  role TEXT NOT NULL,
+  department_id UUID REFERENCES department (id) ON DELETE SET NULL,
+  company_id UUID NOT NULL REFERENCES company (id) ON DELETE CASCADE,
+  invited_by TEXT NOT NULL,
+  invited_by_name TEXT,
+  status TEXT NOT NULL DEFAULT 'PENDING',
+  employee_id TEXT REFERENCES employee (employee_id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  expires_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_invitation_company_id ON invitation (company_id);
+

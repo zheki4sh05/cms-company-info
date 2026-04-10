@@ -23,6 +23,10 @@
     {
       "name": "Departments",
       "description": "Company departments (отделы); mutations require EXECUTIVE"
+    },
+    {
+      "name": "Invitations",
+      "description": "Invite flow for adding employee into company and department"
     }
   ],
   "paths": {
@@ -52,6 +56,109 @@
           },
           "404": {
             "description": "Employee not found for current user",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/invitations/send": {
+      "post": {
+        "tags": ["Invitations"],
+        "summary": "Send invitation and add employee",
+        "operationId": "sendInvitation",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SendInvitationBody" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SendInvitationResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "404": {
+            "description": "Department not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/companies/{companyId}/employees": {
+      "get": {
+        "tags": ["Employee"],
+        "summary": "List company employees",
+        "operationId": "listCompanyEmployees",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Company employees",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/CompanyEmployee" }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Error" }
@@ -1008,6 +1115,65 @@
         "required": ["managerId"],
         "properties": {
           "managerId": { "type": "string" }
+        }
+      },
+      "SendInvitationBody": {
+        "type": "object",
+        "required": ["email", "role", "departmentId", "invitedBy"],
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "role": {
+            "type": "string",
+            "enum": ["MANAGER", "SUPERVISOR", "EXECUTIVE"]
+          },
+          "departmentId": { "type": "string", "format": "uuid" },
+          "invitedBy": { "type": "string" }
+        }
+      },
+      "Invitation": {
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "role",
+          "invitedBy",
+          "status",
+          "createdAt",
+          "expiresAt"
+        ],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "email": { "type": "string", "format": "email" },
+          "role": { "type": "string" },
+          "departmentId": { "type": "string", "format": "uuid", "nullable": true },
+          "invitedBy": { "type": "string" },
+          "invitedByName": { "type": "string", "nullable": true },
+          "status": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "expiresAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "SendInvitationResponse": {
+        "type": "object",
+        "required": ["invitation", "message"],
+        "properties": {
+          "invitation": { "$ref": "#/components/schemas/Invitation" },
+          "message": { "type": "string" }
+        }
+      },
+      "CompanyEmployee": {
+        "type": "object",
+        "required": ["id", "email", "role", "companyId"],
+        "properties": {
+          "id": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "firstName": { "type": "string", "nullable": true },
+          "lastName": { "type": "string", "nullable": true },
+          "role": { "type": "string" },
+          "companyId": { "type": "string", "format": "uuid" },
+          "departmentId": { "type": "string", "format": "uuid", "nullable": true },
+          "employeeId": { "type": "string", "nullable": true },
+          "isFirstLogin": { "type": "boolean", "nullable": true }
         }
       }
     }
