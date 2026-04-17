@@ -38,6 +38,22 @@ async function getCompany(authContext) {
   return toResponse(row, count);
 }
 
+function assertUserId(userId) {
+  if (typeof userId !== "string" || !userId.trim()) {
+    throw new BadRequestError('"userId" path parameter is required');
+  }
+  return userId.trim();
+}
+
+async function getCompanyIdByUserId(userId) {
+  const normalizedUserId = assertUserId(userId);
+  const row = await companyRepository.findCompanyIdByUserId(normalizedUserId);
+  if (!row) {
+    throw new NotFoundError("Company not found for provided userId");
+  }
+  return { companyId: String(row.company_id) };
+}
+
 function assertPatchBody(body) {
   if (body == null || typeof body !== "object") {
     throw new BadRequestError('Body must be JSON object with "name" string');
@@ -79,6 +95,7 @@ async function deleteCompany() {
 
 module.exports = {
   getCompany,
+  getCompanyIdByUserId,
   patchCompany,
   deleteCompany,
 };

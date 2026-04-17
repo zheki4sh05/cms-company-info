@@ -120,6 +120,18 @@ async function findEmployeeByUserId(userId) {
   return rows[0] ?? null;
 }
 
+async function findCompanyIdByUserId(userId) {
+  const { rows } = await pool.query(
+    `SELECT company_id
+     FROM employee
+     WHERE user_id = $1
+     ORDER BY created_at ASC
+     LIMIT 1`,
+    [userId]
+  );
+  return rows[0] ?? null;
+}
+
 async function findEmployeeByUserAndCompany(userId, companyId) {
   const { rows } = await pool.query(
     `SELECT employee_id, user_id, company_id, role
@@ -172,6 +184,7 @@ module.exports = {
   createCompanyWithEmployee,
   findEmployeeInCompanyByNameAndUserAndRole,
   findEmployeeByUserId,
+  findCompanyIdByUserId,
   findEmployeeByUserAndCompany,
   findEmployeeInCompany,
   listEmployeesByCompany,

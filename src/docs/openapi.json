@@ -526,6 +526,49 @@
         }
       }
     },
+    "/company/id/{userId}": {
+      "get": {
+        "tags": ["Company"],
+        "summary": "Get companyId by userId",
+        "operationId": "getCompanyIdByUserId",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "User identifier."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Company id for provided user",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CompanyIdResponse" },
+                "example": { "companyId": "8a6f24ad-1f07-48d8-b4d4-24aa6da67ef8" }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or invalid userId",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "404": {
+            "description": "Company not found for provided userId",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/company": {
       "get": {
         "tags": ["Company"],
@@ -1025,6 +1068,13 @@
         "required": ["employeeId"],
         "properties": {
           "employeeId": { "type": "string" }
+        }
+      },
+      "CompanyIdResponse": {
+        "type": "object",
+        "required": ["companyId"],
+        "properties": {
+          "companyId": { "type": "string" }
         }
       },
       "Department": {

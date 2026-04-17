@@ -22,6 +22,15 @@ async function getCompany(req, res, next) {
   }
 }
 
+async function getCompanyIdByUserId(req, res, next) {
+  try {
+    const data = await companyService.getCompanyIdByUserId(req.params.userId);
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function patchCompany(req, res, next) {
   try {
     const data = await companyService.patchCompany(req.body);
@@ -53,6 +62,7 @@ function errorHandler(err, req, res, next) {
 
 module.exports = {
   getCompany,
+  getCompanyIdByUserId,
   patchCompany,
   deleteCompany,
   errorHandler,
