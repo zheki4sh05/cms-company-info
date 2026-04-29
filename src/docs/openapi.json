@@ -65,6 +65,62 @@
         }
       }
     },
+    "/employee/department-manager": {
+      "get": {
+        "tags": ["Employee"],
+        "summary": "Get department manager by employee identity",
+        "description": "Interservice endpoint. Returns manager of the department where the provided employee is assigned.",
+        "operationId": "getDepartmentManagerByEmployee",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "employeeId",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "companyId",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Department manager",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentManagerByEmployeeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing query parameters",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "404": {
+            "description": "Employee/department/manager not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/invitations/send": {
       "post": {
         "tags": ["Invitations"],
@@ -1068,6 +1124,17 @@
         "required": ["employeeId"],
         "properties": {
           "employeeId": { "type": "string" }
+        }
+      },
+      "DepartmentManagerByEmployeeResponse": {
+        "type": "object",
+        "required": ["departmentId", "employeeId", "userId", "companyId"],
+        "properties": {
+          "departmentId": { "type": "string", "format": "uuid" },
+          "employeeId": { "type": "string" },
+          "userId": { "type": "string" },
+          "companyId": { "type": "string", "format": "uuid" },
+          "role": { "type": "string", "nullable": true }
         }
       },
       "CompanyIdResponse": {

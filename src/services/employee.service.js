@@ -4,7 +4,10 @@ const {
   UnauthorizedError,
   NotFoundError,
   ForbiddenError,
+  BadRequestError,
 } = require("../errors/AppError");
+
+const DEPARTMENT_MANAGER_ROLE = "SUPERVISOR";
 
 async function getEmployeeIdByToken(authContext) {
   const userId = authContext?.userId;
@@ -65,4 +68,57 @@ async function listCompanyEmployees(authContext, bearerHeader, companyId) {
   return enriched;
 }
 
-module.exports = { getEmployeeIdByToken, listCompanyEmployees };
+function assertRequiredParam(value, field) {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new BadRequestError(`"${field}" query parameter is required`);
+  }
+  return value.trim();
+}
+
+async function getDepartmentManagerByEmployee(query) {
+  const userId = assertRequiredParam(query?.userId, "userId");
+  const employeeId = assertRequiredParam(query?.employeeId, "employeeId");
+  const companyId = assertRequiredParam(query?.companyId, "companyId");
+
+  const employee =
+    await companyRepository.findEmployeeByUserAndEmployeeAndCompany({
+      userId,
+      employeeId,
+      companyId,
+    });
+  if (!employee) {
+    throw new NotFoundError("Employee not found for provided userId/companyId");
+  }
+
+  const departmentManager =
+    await companyRepository.findDepartmentManagerByEmployeeAndCompany(
+      employeeId,
+      companyId
+    );
+  if (!departmentManager) {
+    throw new NotFoundError("Employee is not assigned to any department");
+  }
+  if (!departmentManager.manager_id) {
+    throw new NotFoundError("Department manager is not assigned");
+  }
+  if (!departmentManager.manager_user_id) {
+    throw new NotFoundError("Department manager employee not found");
+  }
+  if (departmentManager.manager_role !== DEPARTMENT_MANAGER_ROLE) {
+    throw new NotFoundError("Department manager must have SUPERVISOR role");
+  }
+
+  return {
+    departmentId: String(departmentManager.department_id),
+    employeeId: String(departmentManager.manager_id),
+    userId: String(departmentManager.manager_user_id),
+    companyId: String(companyId),
+    role: departmentManager.manager_role ?? null,
+  };
+}
+
+module.exports = {
+  getEmployeeIdByToken,
+  listCompanyEmployees,
+  getDepartmentManagerByEmployee,
+};

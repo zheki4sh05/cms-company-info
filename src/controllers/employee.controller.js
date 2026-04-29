@@ -9,6 +9,17 @@ async function getEmployeeIdByToken(req, res, next) {
   }
 }
 
+async function getDepartmentManagerByEmployee(req, res, next) {
+  try {
+    const data = await employeeService.getDepartmentManagerByEmployee(
+      req.query
+    );
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function listCompanyEmployees(req, res, next) {
   try {
     const data = await employeeService.listCompanyEmployees(
@@ -22,4 +33,8 @@ async function listCompanyEmployees(req, res, next) {
   }
 }
 
-module.exports = { getEmployeeIdByToken, listCompanyEmployees };
+module.exports = {
+  getEmployeeIdByToken,
+  getDepartmentManagerByEmployee,
+  listCompanyEmployees,
+};

@@ -175,6 +175,43 @@ async function listEmployeesByCompany(companyId) {
   return rows;
 }
 
+async function findEmployeeByUserAndEmployeeAndCompany({
+  userId,
+  employeeId,
+  companyId,
+}) {
+  const { rows } = await pool.query(
+    `SELECT employee_id, user_id, company_id, role
+     FROM employee
+     WHERE user_id = $1
+       AND employee_id = $2
+       AND company_id = $3
+     LIMIT 1`,
+    [userId, employeeId, companyId]
+  );
+  return rows[0] ?? null;
+}
+
+async function findDepartmentManagerByEmployeeAndCompany(employeeId, companyId) {
+  const { rows } = await pool.query(
+    `SELECT d.id AS department_id,
+            d.manager_id,
+            m.user_id AS manager_user_id,
+            m.role AS manager_role
+     FROM department_employee de
+     JOIN department d ON d.id = de.department_id
+     LEFT JOIN employee m
+       ON m.employee_id = d.manager_id
+      AND m.company_id = d.company_id
+     WHERE de.employee_id = $1
+       AND d.company_id = $2
+     ORDER BY d.id
+     LIMIT 1`,
+    [employeeId, companyId]
+  );
+  return rows[0] ?? null;
+}
+
 module.exports = {
   findFirst,
   findByEmployeeAndUser,
@@ -188,4 +225,6 @@ module.exports = {
   findEmployeeByUserAndCompany,
   findEmployeeInCompany,
   listEmployeesByCompany,
+  findEmployeeByUserAndEmployeeAndCompany,
+  findDepartmentManagerByEmployeeAndCompany,
 };
