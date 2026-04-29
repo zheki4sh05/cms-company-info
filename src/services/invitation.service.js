@@ -3,6 +3,7 @@ const departmentRepository = require("../repositories/department.repository");
 const companyRepository = require("../repositories/company.repository");
 const invitationRepository = require("../repositories/invitation.repository");
 const authRestClient = require("../clients/auth.rest-client");
+const { sendAddUserCompanyEvent } = require("../kafka/auth.producer");
 const {
   BadRequestError,
   NotFoundError,
@@ -111,6 +112,11 @@ async function sendInvitation(authContext, authHeader, body) {
     status,
     expiresAt,
     employeeId,
+  });
+
+  await sendAddUserCompanyEvent({
+    userId: invitedUserId,
+    companyId,
   });
 
   return toResponse(created);
