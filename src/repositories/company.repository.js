@@ -154,6 +154,20 @@ async function findEmployeeInCompany(employeeId, companyId) {
   return rows[0] ?? null;
 }
 
+async function findEmployeesByIdsInCompany(employeeIds, companyId) {
+  if (!Array.isArray(employeeIds) || employeeIds.length === 0) {
+    return [];
+  }
+  const { rows } = await pool.query(
+    `SELECT employee_id, user_id, company_id, role
+     FROM employee
+     WHERE company_id = $1
+       AND employee_id = ANY($2::text[])`,
+    [companyId, employeeIds]
+  );
+  return rows;
+}
+
 async function listEmployeesByCompany(companyId) {
   const { rows } = await pool.query(
     `SELECT e.employee_id,
@@ -224,6 +238,7 @@ module.exports = {
   findCompanyIdByUserId,
   findEmployeeByUserAndCompany,
   findEmployeeInCompany,
+  findEmployeesByIdsInCompany,
   listEmployeesByCompany,
   findEmployeeByUserAndEmployeeAndCompany,
   findDepartmentManagerByEmployeeAndCompany,

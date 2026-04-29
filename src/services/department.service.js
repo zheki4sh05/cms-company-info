@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const departmentRepository = require("../repositories/department.repository");
 const companyRepository = require("../repositories/company.repository");
+const authRestClient = require("../clients/auth.rest-client");
 const {
   BadRequestError,
   NotFoundError,
@@ -26,7 +27,69 @@ function mapDepartmentRow(row) {
 
 async function listDepartments(companyId) {
   const rows = await departmentRepository.listByCompanyId(companyId);
-  return rows.map(mapDepartmentRow);
+
+  const supervisorEmployeeIds = [
+    ...new Set(
+      rows
+        .map((row) => row.manager_id)
+        .filter((value) => value != null)
+    ),
+  ];
+
+  const employeesById = new Map();
+  if (supervisorEmployeeIds.length > 0) {
+    const employees = await companyRepository.findEmployeesByIdsInCompany(
+      supervisorEmployeeIds,
+      companyId
+    );
+    for (const employee of employees) {
+      employeesById.set(String(employee.employee_id), employee);
+    }
+  }
+
+  const supervisorNameByEmployeeId = new Map();
+  await Promise.all(
+    supervisorEmployeeIds.map(async (employeeId) => {
+      const employee = employeesById.get(String(employeeId));
+      if (!employee?.user_id) {
+        supervisorNameByEmployeeId.set(String(employeeId), null);
+        return;
+      }
+      try {
+        const user = await authRestClient.getInternalUserById(employee.user_id);
+        const firstName =
+          typeof user?.firstName === "string" && user.firstName.trim()
+            ? user.firstName.trim()
+            : null;
+        const lastName =
+          typeof user?.lastName === "string" && user.lastName.trim()
+            ? user.lastName.trim()
+            : null;
+        const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
+        supervisorNameByEmployeeId.set(
+          String(employeeId),
+          fullName || null
+        );
+      } catch {
+        supervisorNameByEmployeeId.set(String(employeeId), null);
+      }
+    })
+  );
+
+  return rows.map((row) => ({
+    id: String(row.id),
+    name: row.name,
+    description: row.description ?? null,
+    supervisorId: row.manager_id != null ? String(row.manager_id) : null,
+    supervisorName:
+      row.manager_id != null
+        ? (supervisorNameByEmployeeId.get(String(row.manager_id)) ?? null)
+        : null,
+    employeeCount:
+      row.employee_count != null ? Number(row.employee_count) : 0,
+    createdAt: departmentRepository.toIso(row.created_at),
+    updatedAt: departmentRepository.toIso(row.updated_at),
+  }));
 }
 
 async function getDepartmentById(userId, departmentId) {
@@ -95,6 +158,92 @@ async function setDepartmentManager(userId, departmentId, body) {
 
   const full = await departmentRepository.findById(departmentId);
   return mapDepartmentRow(full);
+}
+
+function mapDepartmentSupervisorRow(row) {
+  if (!row) return null;
+  return {
+    id: String(row.id),
+    name: row.name,
+    description: row.description ?? null,
+    supervisorId: row.manager_id != null ? String(row.manager_id) : null,
+    managerName: null,
+    employeeCount:
+      row.employee_count != null ? Number(row.employee_count) : 0,
+    createdAt: departmentRepository.toIso(row.created_at),
+    updatedAt: departmentRepository.toIso(row.updated_at),
+  };
+}
+
+async function setDepartmentSupervisor(
+  userId,
+  departmentId,
+  companyIdHeader,
+  body
+) {
+  const companyId =
+    typeof companyIdHeader === "string" ? companyIdHeader.trim() : "";
+  if (!companyId) {
+    throw new BadRequestError("companyId header is required");
+  }
+  if (body == null || typeof body !== "object") {
+    throw new BadRequestError("Body must be a JSON object");
+  }
+
+  const candidate =
+    typeof body.userId === "string" && body.userId.trim()
+      ? body.userId.trim()
+      : typeof body.managerId === "string" && body.managerId.trim()
+        ? body.managerId.trim()
+        : "";
+  if (!candidate) {
+    throw new BadRequestError("ID руководителя обязателен");
+  }
+
+  const requester = await companyRepository.findEmployeeByUserAndCompany(
+    userId,
+    companyId
+  );
+  if (!requester) {
+    throw new ForbiddenError("You are not a member of this company");
+  }
+  if (requester.role !== EXECUTIVE_ROLE) {
+    throw new ForbiddenError("Only EXECUTIVE role can perform this action");
+  }
+
+  const department = await departmentRepository.findByIdAndCompany(
+    departmentId,
+    companyId
+  );
+  if (!department) {
+    throw new NotFoundError("Департамент не найден");
+  }
+
+  const supervisorEmployee = await companyRepository.findEmployeeByUserAndCompany(
+    candidate,
+    companyId
+  );
+  if (!supervisorEmployee) {
+    throw new BadRequestError("ID руководителя обязателен");
+  }
+
+  await departmentRepository.addDepartmentMember(
+    departmentId,
+    supervisorEmployee.employee_id
+  );
+
+  await departmentRepository.assignDepartmentSupervisor({
+    departmentId,
+    companyId,
+    newSupervisorEmployeeId: supervisorEmployee.employee_id,
+    oldSupervisorEmployeeId: department.manager_id,
+  });
+
+  const full = await departmentRepository.findByIdAndCompany(
+    departmentId,
+    companyId
+  );
+  return mapDepartmentSupervisorRow(full);
 }
 
 function assertNonEmptyString(value, field) {
@@ -433,6 +582,7 @@ module.exports = {
   getDepartmentById,
   patchDepartmentById,
   setDepartmentManager,
+  setDepartmentSupervisor,
   transferEmployee,
   deleteDepartmentById,
   createDepartment,

@@ -24,6 +24,12 @@ router.post(
   departmentController.assignManager
 );
 
+router.post(
+  "/:departmentId/supervisor",
+  requireUser,
+  departmentController.assignSupervisor
+);
+
 router.patch("/:id", requireUser, departmentController.patchAtRoot);
 
 router.delete("/:id", requireUser, departmentController.destroyAtRoot);

@@ -132,4 +132,36 @@ async function getEmployeeByUserId(userId, bearerToken) {
   }
 }
 
-module.exports = { getUserIdByEmail, getEmployeeByUserId };
+async function getInternalUserById(userId) {
+  if (typeof fetch !== "function") {
+    throw new Error("Global fetch is not available in current Node runtime");
+  }
+  const baseUrl = getAuthServiceBaseUrl();
+  const url = `${baseUrl}/api/internal/users/${encodeURIComponent(userId)}`;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      signal: controller.signal,
+    });
+
+    if (response.status === 404) return null;
+    if (!response.ok) {
+      throw new Error(
+        `auth-service internal user fetch failed: ${response.status} ${response.statusText}`
+      );
+    }
+
+    const data = await response.json();
+    if (data == null || typeof data !== "object") {
+      throw new BadRequestError("Invalid auth-service internal user response");
+    }
+    return data;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+module.exports = { getUserIdByEmail, getEmployeeByUserId, getInternalUserById };

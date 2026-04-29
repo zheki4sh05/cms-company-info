@@ -71,6 +71,20 @@ async function assignManager(req, res, next) {
   }
 }
 
+async function assignSupervisor(req, res, next) {
+  try {
+    const data = await departmentService.setDepartmentSupervisor(
+      req.authContext.userId,
+      req.params.departmentId,
+      req.headers.companyid,
+      req.body
+    );
+    res.status(200).json(data);
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function create(req, res, next) {
   try {
     const data = await departmentService.createDepartment(
@@ -154,6 +168,7 @@ module.exports = {
   destroyAtRoot,
   transfer,
   assignManager,
+  assignSupervisor,
   create,
   createAtRoot,
   update,
