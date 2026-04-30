@@ -130,9 +130,15 @@ async function setDepartmentManager(userId, departmentId, body) {
     throw new BadRequestError("Body must be a JSON object");
   }
   const managerId = assertNonEmptyString(body.managerId, "managerId");
+  console.log(
+    `[department.setDepartmentManager] start departmentId=${departmentId} userId=${userId} requestedManagerId=${managerId}`
+  );
 
   const row = await departmentRepository.findById(departmentId);
   if (!row) {
+    console.warn(
+      `[department.setDepartmentManager] department not found departmentId=${departmentId}`
+    );
     throw new NotFoundError("Department not found");
   }
   const member = await companyRepository.findEmployeeByUserAndCompany(
@@ -147,6 +153,9 @@ async function setDepartmentManager(userId, departmentId, body) {
   }
 
   await assertManagerInCompany(managerId, row.company_id);
+  console.log(
+    `[department.setDepartmentManager] reassign companyId=${row.company_id} departmentId=${departmentId} oldManagerId=${row.manager_id ?? "null"} newManagerId=${managerId}`
+  );
   await departmentRepository.reassignDepartmentManager({
     departmentId,
     companyId: row.company_id,
@@ -158,6 +167,9 @@ async function setDepartmentManager(userId, departmentId, body) {
   });
 
   const full = await departmentRepository.findById(departmentId);
+  console.log(
+    `[department.setDepartmentManager] done departmentId=${departmentId} persistedManagerId=${full?.manager_id ?? "null"}`
+  );
   return mapDepartmentRow(full);
 }
 
@@ -200,6 +212,9 @@ async function setDepartmentSupervisor(
   if (!candidate) {
     throw new BadRequestError("ID руководителя обязателен");
   }
+  console.log(
+    `[department.setDepartmentSupervisor] start companyId=${companyId} departmentId=${departmentId} userId=${userId} requestedCandidate=${candidate}`
+  );
 
   const requester = await companyRepository.findEmployeeByUserAndCompany(
     userId,
@@ -217,6 +232,9 @@ async function setDepartmentSupervisor(
     companyId
   );
   if (!department) {
+    console.warn(
+      `[department.setDepartmentSupervisor] department not found companyId=${companyId} departmentId=${departmentId}`
+    );
     throw new NotFoundError("Департамент не найден");
   }
 
@@ -228,6 +246,9 @@ async function setDepartmentSupervisor(
     throw new BadRequestError("ID руководителя обязателен");
   }
 
+  console.log(
+    `[department.setDepartmentSupervisor] reassign companyId=${companyId} departmentId=${departmentId} oldManagerId=${department.manager_id ?? "null"} newManagerId=${supervisorEmployee.employee_id}`
+  );
   await departmentRepository.reassignDepartmentManager({
     departmentId,
     companyId,
@@ -241,6 +262,9 @@ async function setDepartmentSupervisor(
   const full = await departmentRepository.findByIdAndCompany(
     departmentId,
     companyId
+  );
+  console.log(
+    `[department.setDepartmentSupervisor] done companyId=${companyId} departmentId=${departmentId} persistedManagerId=${full?.manager_id ?? "null"}`
   );
   return mapDepartmentSupervisorRow(full);
 }
@@ -485,6 +509,9 @@ async function updateDepartment(companyId, departmentId, body) {
 
   const managerChanged = managerId !== undefined && mergedManagerId !== existing.manager_id;
   if (managerChanged) {
+    console.log(
+      `[department.updateDepartment] manager change detected companyId=${companyId} departmentId=${departmentId} oldManagerId=${existing.manager_id ?? "null"} newManagerId=${mergedManagerId ?? "null"}`
+    );
     await departmentRepository.reassignDepartmentManager({
       departmentId,
       companyId,
@@ -495,6 +522,9 @@ async function updateDepartment(companyId, departmentId, body) {
       removeOldManagerFromDepartment: true,
     });
   } else {
+    console.log(
+      `[department.updateDepartment] update without manager reassignment companyId=${companyId} departmentId=${departmentId}`
+    );
     await departmentRepository.updateDepartment(departmentId, companyId, {
       name: mergedName,
       description: mergedDescription,

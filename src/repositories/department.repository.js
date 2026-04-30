@@ -209,9 +209,15 @@ async function reassignDepartmentManager({
 }) {
   const client = await pool.connect();
   try {
+    console.log(
+      `[department.reassignDepartmentManager] BEGIN companyId=${companyId} departmentId=${departmentId} oldManagerId=${oldManagerEmployeeId ?? "null"} newManagerId=${newManagerEmployeeId ?? "null"} removeOld=${removeOldManagerFromDepartment}`
+    );
     await client.query("BEGIN");
 
     if (newManagerEmployeeId) {
+      console.log(
+        `[department.reassignDepartmentManager] ensure new manager membership departmentId=${departmentId} employeeId=${newManagerEmployeeId}`
+      );
       await client.query(
         `INSERT INTO department_employee (department_id, employee_id)
          VALUES ($1, $2)
@@ -220,7 +226,7 @@ async function reassignDepartmentManager({
       );
     }
 
-    await client.query(
+    const { rowCount: updatedDepartments } = await client.query(
       `UPDATE department
        SET name = $3,
            description = $4,
@@ -229,8 +235,34 @@ async function reassignDepartmentManager({
        WHERE id = $1 AND company_id = $2`,
       [departmentId, companyId, name, description, newManagerEmployeeId]
     );
+    if (updatedDepartments === 0) {
+      throw new Error(
+        "Department row was not updated while reassigning manager"
+      );
+    }
+
+    const { rows: verifyRows } = await client.query(
+      `SELECT manager_id
+       FROM department
+       WHERE id = $1 AND company_id = $2
+       LIMIT 1`,
+      [departmentId, companyId]
+    );
+    const persistedManagerId = verifyRows[0]?.manager_id ?? null;
+    const expectedManagerId = newManagerEmployeeId ?? null;
+    if (persistedManagerId !== expectedManagerId) {
+      throw new Error(
+        `Manager mismatch after update: expected=${expectedManagerId ?? "null"} actual=${persistedManagerId ?? "null"}`
+      );
+    }
+    console.log(
+      `[department.reassignDepartmentManager] department updated departmentId=${departmentId} managerId=${newManagerEmployeeId ?? "null"}`
+    );
 
     if (newManagerEmployeeId) {
+      console.log(
+        `[department.reassignDepartmentManager] promote new manager to SUPERVISOR employeeId=${newManagerEmployeeId}`
+      );
       await client.query(
         `UPDATE employee
          SET role = 'SUPERVISOR'
@@ -252,8 +284,14 @@ async function reassignDepartmentManager({
         [companyId, oldManagerEmployeeId, departmentId]
       );
       const managesAnotherDepartment = Number(managedRows[0]?.cnt ?? 0) > 0;
+      console.log(
+        `[department.reassignDepartmentManager] old manager cross-department check employeeId=${oldManagerEmployeeId} managesAnotherDepartment=${managesAnotherDepartment}`
+      );
 
       if (!managesAnotherDepartment) {
+        console.log(
+          `[department.reassignDepartmentManager] demote old manager to MANAGER employeeId=${oldManagerEmployeeId}`
+        );
         await client.query(
           `UPDATE employee
            SET role = 'MANAGER'
@@ -265,6 +303,9 @@ async function reassignDepartmentManager({
       }
 
       if (removeOldManagerFromDepartment) {
+        console.log(
+          `[department.reassignDepartmentManager] remove old manager membership departmentId=${departmentId} employeeId=${oldManagerEmployeeId}`
+        );
         await client.query(
           `DELETE FROM department_employee
            WHERE department_id = $1
@@ -275,8 +316,14 @@ async function reassignDepartmentManager({
     }
 
     await client.query("COMMIT");
+    console.log(
+      `[department.reassignDepartmentManager] COMMIT companyId=${companyId} departmentId=${departmentId}`
+    );
   } catch (err) {
     await client.query("ROLLBACK");
+    console.error(
+      `[department.reassignDepartmentManager] ROLLBACK companyId=${companyId} departmentId=${departmentId} error=${err.message}`
+    );
     throw err;
   } finally {
     client.release();
