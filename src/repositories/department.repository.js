@@ -198,6 +198,91 @@ async function assignDepartmentSupervisor({
   }
 }
 
+async function reassignDepartmentManager({
+  departmentId,
+  companyId,
+  newManagerEmployeeId,
+  oldManagerEmployeeId,
+  name,
+  description,
+  removeOldManagerFromDepartment = false,
+}) {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    if (newManagerEmployeeId) {
+      await client.query(
+        `INSERT INTO department_employee (department_id, employee_id)
+         VALUES ($1, $2)
+         ON CONFLICT DO NOTHING`,
+        [departmentId, newManagerEmployeeId]
+      );
+    }
+
+    await client.query(
+      `UPDATE department
+       SET name = $3,
+           description = $4,
+           manager_id = $5,
+           updated_at = NOW()
+       WHERE id = $1 AND company_id = $2`,
+      [departmentId, companyId, name, description, newManagerEmployeeId]
+    );
+
+    if (newManagerEmployeeId) {
+      await client.query(
+        `UPDATE employee
+         SET role = 'SUPERVISOR'
+         WHERE employee_id = $1 AND company_id = $2`,
+        [newManagerEmployeeId, companyId]
+      );
+    }
+
+    if (
+      oldManagerEmployeeId &&
+      oldManagerEmployeeId !== newManagerEmployeeId
+    ) {
+      const { rows: managedRows } = await client.query(
+        `SELECT COUNT(*)::int AS cnt
+         FROM department
+         WHERE company_id = $1
+           AND manager_id = $2
+           AND id <> $3`,
+        [companyId, oldManagerEmployeeId, departmentId]
+      );
+      const managesAnotherDepartment = Number(managedRows[0]?.cnt ?? 0) > 0;
+
+      if (!managesAnotherDepartment) {
+        await client.query(
+          `UPDATE employee
+           SET role = 'MANAGER'
+           WHERE employee_id = $1
+             AND company_id = $2
+             AND role = 'SUPERVISOR'`,
+          [oldManagerEmployeeId, companyId]
+        );
+      }
+
+      if (removeOldManagerFromDepartment) {
+        await client.query(
+          `DELETE FROM department_employee
+           WHERE department_id = $1
+             AND employee_id = $2`,
+          [departmentId, oldManagerEmployeeId]
+        );
+      }
+    }
+
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 /**
  * Atomically: remove member from source dept, add to target, clear source manager if needed.
  * Caller must ensure same company and business rules.
@@ -270,6 +355,7 @@ module.exports = {
   removeDepartmentMember,
   clearManagerIfMatches,
   assignDepartmentSupervisor,
+  reassignDepartmentManager,
   transferEmployeeBetweenDepartments,
   toIso,
 };

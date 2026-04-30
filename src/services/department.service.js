@@ -147,14 +147,15 @@ async function setDepartmentManager(userId, departmentId, body) {
   }
 
   await assertManagerInCompany(managerId, row.company_id);
-
-  await departmentRepository.updateDepartment(departmentId, row.company_id, {
+  await departmentRepository.reassignDepartmentManager({
+    departmentId,
+    companyId: row.company_id,
+    newManagerEmployeeId: managerId,
+    oldManagerEmployeeId: row.manager_id,
     name: row.name,
     description: row.description,
-    managerId,
+    removeOldManagerFromDepartment: true,
   });
-
-  await departmentRepository.addDepartmentMember(departmentId, managerId);
 
   const full = await departmentRepository.findById(departmentId);
   return mapDepartmentRow(full);
@@ -227,16 +228,14 @@ async function setDepartmentSupervisor(
     throw new BadRequestError("ID руководителя обязателен");
   }
 
-  await departmentRepository.addDepartmentMember(
-    departmentId,
-    supervisorEmployee.employee_id
-  );
-
-  await departmentRepository.assignDepartmentSupervisor({
+  await departmentRepository.reassignDepartmentManager({
     departmentId,
     companyId,
-    newSupervisorEmployeeId: supervisorEmployee.employee_id,
-    oldSupervisorEmployeeId: department.manager_id,
+    newManagerEmployeeId: supervisorEmployee.employee_id,
+    oldManagerEmployeeId: department.manager_id,
+    name: department.name,
+    description: department.description,
+    removeOldManagerFromDepartment: true,
   });
 
   const full = await departmentRepository.findByIdAndCompany(
@@ -484,20 +483,23 @@ async function updateDepartment(companyId, departmentId, body) {
     mergedManagerId = managerId;
   }
 
-  await departmentRepository.updateDepartment(departmentId, companyId, {
-    name: mergedName,
-    description: mergedDescription,
-    managerId: mergedManagerId,
-  });
-
-  if (
-    mergedManagerId &&
-    mergedManagerId !== existing.manager_id
-  ) {
-    await departmentRepository.addDepartmentMember(
+  const managerChanged = managerId !== undefined && mergedManagerId !== existing.manager_id;
+  if (managerChanged) {
+    await departmentRepository.reassignDepartmentManager({
       departmentId,
-      mergedManagerId
-    );
+      companyId,
+      newManagerEmployeeId: mergedManagerId,
+      oldManagerEmployeeId: existing.manager_id,
+      name: mergedName,
+      description: mergedDescription,
+      removeOldManagerFromDepartment: true,
+    });
+  } else {
+    await departmentRepository.updateDepartment(departmentId, companyId, {
+      name: mergedName,
+      description: mergedDescription,
+      managerId: mergedManagerId,
+    });
   }
 
   const full = await departmentRepository.findByIdAndCompany(
