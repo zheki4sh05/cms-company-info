@@ -26,16 +26,40 @@ function requireAuthContext(authContext) {
 }
 
 async function getCompany(authContext) {
+  const startedAt = Date.now();
+  const contextUserId = authContext?.userId ?? "-";
+  const contextEmployeeId = authContext?.employeeId ?? "-";
+  console.log(
+    `[companyService.getCompany] start authContextUserId=${contextUserId} authContextEmployeeId=${contextEmployeeId}`
+  );
+
   const { userId, employeeId } = requireAuthContext(authContext);
+  console.log(
+    `[companyService.getCompany] validated auth context userId=${userId} employeeId=${employeeId}`
+  );
+
   const row = await companyRepository.findByEmployeeAndUser(employeeId, userId);
   if (!row) {
+    console.warn(
+      `[companyService.getCompany] company not found userId=${userId} employeeId=${employeeId}`
+    );
     throw new NotFoundError("Company not found for current employee/user");
   }
+
+  console.log(
+    `[companyService.getCompany] repository returned companyId=${row.id} hasEmployeeCount=${row.employee_count != null}`
+  );
+
   const count =
     row.employee_count != null
       ? row.employee_count
       : await companyRepository.employeeCountByCompanyId(row.id);
-  return toResponse(row, count);
+  const response = toResponse(row, count);
+  const elapsed = Date.now() - startedAt;
+  console.log(
+    `[companyService.getCompany] success companyId=${response.id} employeeCount=${response.employeeCount} elapsedMs=${elapsed}`
+  );
+  return response;
 }
 
 function assertUserId(userId) {

@@ -30,6 +30,16 @@ async function createInvitationWithEmployee({
       [departmentId, employeeId]
     );
 
+    if (role === "SUPERVISOR") {
+      await client.query(
+        `UPDATE department
+         SET manager_id = $2,
+             updated_at = NOW()
+         WHERE id = $1`,
+        [departmentId, employeeId]
+      );
+    }
+
     const { rows } = await client.query(
       `INSERT INTO invitation
        (id, email, role, department_id, company_id, invited_by, invited_by_name, status, employee_id, expires_at)
