@@ -121,6 +121,62 @@
         }
       }
     },
+    "/employee/department-manager-subordinates": {
+      "get": {
+        "tags": ["Employee"],
+        "summary": "MANAGER-role subordinates of a department head",
+        "description": "Interservice endpoint. Verifies employeeId is SUPERVISOR department manager (department.manager_id) in the company, then returns distinct userIds of department members with role MANAGER across all such departments.",
+        "operationId": "getDepartmentHeadManagerSubordinateUserIds",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "employeeId",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "companyId",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Department head confirmed; MANAGER user ids (may be empty)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentHeadManagerSubordinatesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing query parameters",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "404": {
+            "description": "Employee not found or not a department head",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/invitations/send": {
       "post": {
         "tags": ["Invitations"],
@@ -1135,6 +1191,18 @@
           "userId": { "type": "string" },
           "companyId": { "type": "string", "format": "uuid" },
           "role": { "type": "string", "nullable": true }
+        }
+      },
+      "DepartmentHeadManagerSubordinatesResponse": {
+        "type": "object",
+        "required": ["companyId", "employeeId", "userIds"],
+        "properties": {
+          "companyId": { "type": "string", "format": "uuid" },
+          "employeeId": { "type": "string" },
+          "userIds": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
         }
       },
       "CompanyIdResponse": {

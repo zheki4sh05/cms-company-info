@@ -20,6 +20,18 @@ async function getDepartmentManagerByEmployee(req, res, next) {
   }
 }
 
+async function getDepartmentHeadManagerSubordinateUserIds(req, res, next) {
+  try {
+    const data =
+      await employeeService.getDepartmentHeadManagerSubordinateUserIds(
+        req.query
+      );
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function listCompanyEmployees(req, res, next) {
   try {
     const data = await employeeService.listCompanyEmployees(
@@ -36,5 +48,6 @@ async function listCompanyEmployees(req, res, next) {
 module.exports = {
   getEmployeeIdByToken,
   getDepartmentManagerByEmployee,
+  getDepartmentHeadManagerSubordinateUserIds,
   listCompanyEmployees,
 };

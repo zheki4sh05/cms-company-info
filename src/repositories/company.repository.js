@@ -226,6 +226,47 @@ async function findDepartmentManagerByEmployeeAndCompany(employeeId, companyId) 
   return rows[0] ?? null;
 }
 
+async function isDepartmentHeadSupervisorInCompany(employeeId, companyId) {
+  const { rows } = await pool.query(
+    `SELECT 1
+     FROM department d
+     JOIN employee head
+       ON head.employee_id = d.manager_id
+      AND head.company_id = d.company_id
+     WHERE d.company_id = $1
+       AND d.manager_id = $2
+       AND head.role = 'SUPERVISOR'
+     LIMIT 1`,
+    [companyId, employeeId]
+  );
+  return rows.length > 0;
+}
+
+async function listManagerSubordinateUserIdsForDepartmentHead(
+  employeeId,
+  companyId
+) {
+  const { rows } = await pool.query(
+    `SELECT DISTINCT e.user_id
+     FROM department d
+     JOIN employee head
+       ON head.employee_id = d.manager_id
+      AND head.company_id = d.company_id
+     JOIN department_employee de ON de.department_id = d.id
+     JOIN employee e
+       ON e.employee_id = de.employee_id
+      AND e.company_id = d.company_id
+     WHERE d.company_id = $1
+       AND d.manager_id = $2
+       AND head.role = 'SUPERVISOR'
+       AND e.role = 'MANAGER'
+       AND e.employee_id <> $2
+     ORDER BY e.user_id`,
+    [companyId, employeeId]
+  );
+  return rows.map((r) => String(r.user_id));
+}
+
 module.exports = {
   findFirst,
   findByEmployeeAndUser,
@@ -242,4 +283,6 @@ module.exports = {
   listEmployeesByCompany,
   findEmployeeByUserAndEmployeeAndCompany,
   findDepartmentManagerByEmployeeAndCompany,
+  isDepartmentHeadSupervisorInCompany,
+  listManagerSubordinateUserIdsForDepartmentHead,
 };

@@ -8,5 +8,9 @@ router.get(
   "/department-manager",
   employeeController.getDepartmentManagerByEmployee
 );
+router.get(
+  "/department-manager-subordinates",
+  employeeController.getDepartmentHeadManagerSubordinateUserIds
+);
 
 module.exports = router;

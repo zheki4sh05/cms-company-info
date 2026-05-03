@@ -117,8 +117,47 @@ async function getDepartmentManagerByEmployee(query) {
   };
 }
 
+async function getDepartmentHeadManagerSubordinateUserIds(query) {
+  const userId = assertRequiredParam(query?.userId, "userId");
+  const employeeId = assertRequiredParam(query?.employeeId, "employeeId");
+  const companyId = assertRequiredParam(query?.companyId, "companyId");
+
+  const employee =
+    await companyRepository.findEmployeeByUserAndEmployeeAndCompany({
+      userId,
+      employeeId,
+      companyId,
+    });
+  if (!employee) {
+    throw new NotFoundError("Employee not found for provided userId/companyId");
+  }
+
+  const isHead = await companyRepository.isDepartmentHeadSupervisorInCompany(
+    employeeId,
+    companyId
+  );
+  if (!isHead) {
+    throw new NotFoundError(
+      "Employee is not a department head (SUPERVISOR manager of a department)"
+    );
+  }
+
+  const userIds =
+    await companyRepository.listManagerSubordinateUserIdsForDepartmentHead(
+      employeeId,
+      companyId
+    );
+
+  return {
+    companyId: String(companyId),
+    employeeId: String(employeeId),
+    userIds,
+  };
+}
+
 module.exports = {
   getEmployeeIdByToken,
   listCompanyEmployees,
   getDepartmentManagerByEmployee,
+  getDepartmentHeadManagerSubordinateUserIds,
 };
