@@ -1,6 +1,19 @@
+const DEFAULT_POSTGRES_PORT = 5432;
+
+function resolvePostgresPort(raw) {
+  if (raw == null) return DEFAULT_POSTGRES_PORT;
+  const trimmed = String(raw).trim();
+  if (trimmed === "") return DEFAULT_POSTGRES_PORT;
+  const n = Number(trimmed);
+  if (!Number.isFinite(n) || n < 1 || n > 65535) {
+    return DEFAULT_POSTGRES_PORT;
+  }
+  return n;
+}
+
 function getConnectionConfig() {
   const host = process.env.POSTGRES_HOST || "localhost";
-  const port = Number(process.env.POSTGRES_PORT) || 5432;
+  const port = resolvePostgresPort(process.env.POSTGRES_PORT);
   const user = process.env.POSTGRES_USER || "postgres";
   const password = process.env.POSTGRES_PASSWORD || "postgres";
   const database = process.env.POSTGRES_DB || "company_db";
