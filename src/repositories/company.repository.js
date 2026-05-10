@@ -120,6 +120,32 @@ async function findEmployeeByUserId(userId) {
   return rows[0] ?? null;
 }
 
+/** First employee row for user_id; first department assignment (by department id) if any. */
+async function findEmployeeDepartmentContextByUserId(userId) {
+  const { rows } = await pool.query(
+    `WITH emp AS (
+       SELECT employee_id, company_id, role
+       FROM employee
+       WHERE user_id = $1
+       ORDER BY created_at ASC
+       LIMIT 1
+     )
+     SELECT emp.employee_id,
+            de.department_id,
+            d.name AS department_name,
+            emp.role AS department_role
+     FROM emp
+     LEFT JOIN department_employee de ON de.employee_id = emp.employee_id
+     LEFT JOIN department d
+       ON d.id = de.department_id
+      AND d.company_id = emp.company_id
+     ORDER BY de.department_id ASC NULLS LAST
+     LIMIT 1`,
+    [userId]
+  );
+  return rows[0] ?? null;
+}
+
 async function findCompanyIdByUserId(userId) {
   const { rows } = await pool.query(
     `SELECT company_id
@@ -276,6 +302,7 @@ module.exports = {
   createCompanyWithEmployee,
   findEmployeeInCompanyByNameAndUserAndRole,
   findEmployeeByUserId,
+  findEmployeeDepartmentContextByUserId,
   findCompanyIdByUserId,
   findEmployeeByUserAndCompany,
   findEmployeeInCompany,

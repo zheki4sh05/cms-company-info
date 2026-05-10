@@ -74,6 +74,18 @@ async function findById(departmentId) {
   return rows[0] ?? null;
 }
 
+async function listMembersByDepartmentId(departmentId) {
+  const { rows } = await pool.query(
+    `SELECT e.employee_id, e.user_id
+     FROM department_employee de
+     JOIN employee e ON e.employee_id = de.employee_id
+     WHERE de.department_id = $1
+     ORDER BY e.created_at ASC`,
+    [departmentId]
+  );
+  return rows;
+}
+
 async function insertDepartment({ id, companyId, name, description, managerId }) {
   const { rows } = await pool.query(
     `INSERT INTO department (id, company_id, name, description, manager_id)
@@ -395,6 +407,7 @@ module.exports = {
   listByCompanyId,
   findByIdAndCompany,
   findById,
+  listMembersByDepartmentId,
   insertDepartment,
   updateDepartment,
   deleteDepartment,

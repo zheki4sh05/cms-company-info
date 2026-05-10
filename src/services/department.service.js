@@ -104,7 +104,47 @@ async function getDepartmentById(userId, departmentId) {
   if (!member) {
     throw new ForbiddenError("You are not a member of this company");
   }
-  return mapDepartmentRow(row);
+
+  const departmentMembers =
+    await departmentRepository.listMembersByDepartmentId(departmentId);
+  const employees = await Promise.all(
+    departmentMembers.map(async (departmentMember) => {
+      const fallbackUserId =
+        departmentMember.user_id != null
+          ? String(departmentMember.user_id)
+          : null;
+
+      let user = null;
+      if (fallbackUserId) {
+        try {
+          user = await authRestClient.getInternalUserById(fallbackUserId);
+        } catch {
+          user = null;
+        }
+      }
+
+      return {
+        employeeId: String(departmentMember.employee_id),
+        userId:
+          typeof user?.id === "string" && user.id.trim()
+            ? user.id.trim()
+            : fallbackUserId,
+        firstName:
+          typeof user?.firstName === "string" && user.firstName.trim()
+            ? user.firstName.trim()
+            : null,
+        lastName:
+          typeof user?.lastName === "string" && user.lastName.trim()
+            ? user.lastName.trim()
+            : null,
+      };
+    })
+  );
+
+  return {
+    ...mapDepartmentRow(row),
+    employees,
+  };
 }
 
 async function patchDepartmentById(userId, departmentId, body) {

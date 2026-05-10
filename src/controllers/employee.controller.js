@@ -9,6 +9,18 @@ async function getEmployeeIdByToken(req, res, next) {
   }
 }
 
+async function getEmployeeDepartmentContextByUserId(req, res, next) {
+  try {
+    const data =
+      await employeeService.getEmployeeDepartmentContextByUserId(
+        req.params.userId
+      );
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function getDepartmentManagerByEmployee(req, res, next) {
   try {
     const data = await employeeService.getDepartmentManagerByEmployee(
@@ -47,6 +59,7 @@ async function listCompanyEmployees(req, res, next) {
 
 module.exports = {
   getEmployeeIdByToken,
+  getEmployeeDepartmentContextByUserId,
   getDepartmentManagerByEmployee,
   getDepartmentHeadManagerSubordinateUserIds,
   listCompanyEmployees,

@@ -65,6 +65,57 @@
         }
       }
     },
+    "/employee/internal/id/{userId}": {
+      "get": {
+        "tags": ["Employee"],
+        "summary": "Employee and department context by userId",
+        "description": "Interservice endpoint. Returns the earliest-created employee row for userId plus one assigned department (lowest department id if several). departmentRole mirrors employee.role. Responds 404 if the employee exists but is not assigned to any department.",
+        "operationId": "getEmployeeDepartmentContextByUserId",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "User identifier."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "employeeId with department id, name, and role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeDepartmentContextByUserIdResponse"
+                },
+                "example": {
+                  "employeeId": "emp-001",
+                  "departmentId": "8a6f24ad-1f07-48d8-b4d4-24aa6da67ef8",
+                  "departmentName": "Engineering",
+                  "departmentRole": "MANAGER"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or invalid userId",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "404": {
+            "description": "Employee not found for provided userId or employee has no department assignment",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/employee/department-manager": {
       "get": {
         "tags": ["Employee"],
@@ -485,7 +536,7 @@
             "description": "Department",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Department" }
+                "schema": { "$ref": "#/components/schemas/DepartmentDetails" }
               }
             }
           },
@@ -1182,6 +1233,16 @@
           "employeeId": { "type": "string" }
         }
       },
+      "EmployeeDepartmentContextByUserIdResponse": {
+        "type": "object",
+        "required": ["employeeId", "departmentId", "departmentName", "departmentRole"],
+        "properties": {
+          "employeeId": { "type": "string" },
+          "departmentId": { "type": "string", "format": "uuid" },
+          "departmentName": { "type": "string" },
+          "departmentRole": { "type": "string" }
+        }
+      },
       "DepartmentManagerByEmployeeResponse": {
         "type": "object",
         "required": ["departmentId", "employeeId", "userId", "companyId"],
@@ -1231,6 +1292,31 @@
           "createdAt": { "type": "string", "format": "date-time" },
           "updatedAt": { "type": "string", "format": "date-time" }
         }
+      },
+      "DepartmentEmployeeSummary": {
+        "type": "object",
+        "required": ["employeeId", "userId", "firstName", "lastName"],
+        "properties": {
+          "employeeId": { "type": "string" },
+          "userId": { "type": "string", "nullable": true },
+          "firstName": { "type": "string", "nullable": true },
+          "lastName": { "type": "string", "nullable": true }
+        }
+      },
+      "DepartmentDetails": {
+        "allOf": [
+          { "$ref": "#/components/schemas/Department" },
+          {
+            "type": "object",
+            "required": ["employees"],
+            "properties": {
+              "employees": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/DepartmentEmployeeSummary" }
+              }
+            }
+          }
+        ]
       },
       "CreateDepartmentBody": {
         "type": "object",

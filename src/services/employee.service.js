@@ -75,6 +75,31 @@ function assertRequiredParam(value, field) {
   return value.trim();
 }
 
+function assertUserIdParam(userId) {
+  if (typeof userId !== "string" || !userId.trim()) {
+    throw new BadRequestError('"userId" path parameter is required');
+  }
+  return userId.trim();
+}
+
+async function getEmployeeDepartmentContextByUserId(userId) {
+  const normalizedUserId = assertUserIdParam(userId);
+  const row =
+    await companyRepository.findEmployeeDepartmentContextByUserId(normalizedUserId);
+  if (!row) {
+    throw new NotFoundError("Employee not found for provided userId");
+  }
+  if (row.department_id == null || row.department_name == null) {
+    throw new NotFoundError("Department not found for employee");
+  }
+  return {
+    employeeId: String(row.employee_id),
+    departmentId: String(row.department_id),
+    departmentName: String(row.department_name),
+    departmentRole: String(row.department_role),
+  };
+}
+
 async function getDepartmentManagerByEmployee(query) {
   const userId = assertRequiredParam(query?.userId, "userId");
   const employeeId = assertRequiredParam(query?.employeeId, "employeeId");
@@ -157,6 +182,7 @@ async function getDepartmentHeadManagerSubordinateUserIds(query) {
 
 module.exports = {
   getEmployeeIdByToken,
+  getEmployeeDepartmentContextByUserId,
   listCompanyEmployees,
   getDepartmentManagerByEmployee,
   getDepartmentHeadManagerSubordinateUserIds,
