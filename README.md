@@ -84,10 +84,23 @@ npm install
 ### 3) Поднять PostgreSQL (опционально через Docker)
 
 ```bash
-docker compose up -d db
+docker compose -f docker-compose.db.yml up -d db
 ```
 
-По умолчанию в `docker-compose.yml` контейнер Postgres публикуется на `5433`.
+По умолчанию в `docker-compose.db.yml` контейнер Postgres публикуется на `5433`.
+
+### Запуск сервиса в Docker
+
+В `docker-compose.yml` только приложение. PostgreSQL и Kafka подключаются снаружи (хост или отдельная инфраструктура).
+
+```bash
+cp .env.docker.example .env
+# отредактируйте POSTGRES_*, KAFKA_*, AUTH_SERVICE_URL, JWT_*
+
+docker compose up -d --build
+```
+
+С хоста Windows/macOS для доступа к сервисам на машине разработчика используйте `host.docker.internal` (см. `.env.docker.example`).
 
 ### 4) Инициализировать БД
 
